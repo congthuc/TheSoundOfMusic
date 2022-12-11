@@ -66,7 +66,7 @@ public class DataProcessor {
         }
     }
 
-    private boolean handleTimeZone(String filePath) {
+    public boolean handleTimeZone(String filePath) {
         return filePath.contains("timezone");
     }
 
