@@ -30,7 +30,7 @@ public class ShowScheduler {
 
         if (nextShow == null) {
             Show extendedShow = result.stream()
-                    .filter(s -> s.getFinish().after(result.getLast().getFinish()))
+                    .filter(s -> s.getPriority() < result.getLast().getPriority() && s.getFinish().after(result.getLast().getFinish()))
                     .max(Comparator.comparing(Show::getPriority))
                     .orElse(null);
             if (extendedShow != null) {
@@ -41,9 +41,9 @@ public class ShowScheduler {
             result.add(nextShow);
             sortedShows.remove(nextShow);
 
-            // find in the current shows, if any show has the finish time after the next
+            // find in the current shows, if any lower priority show has the finish time after the next
             Show extendedShow = result.stream()
-                    .filter(s -> s.getFinish().after(nextShow.getFinish()))
+                    .filter(s -> s.getPriority() < nextShow.getPriority() && s.getFinish().after(nextShow.getFinish()))
                     .max(Comparator.comparing(Show::getPriority))
                     .orElse(null);
 
@@ -89,7 +89,7 @@ public class ShowScheduler {
         }
 
         if (nextCandidate.getPriority() < previousShow.getPriority()) {
-            // if nextCandiate's priority lower than the previous show's priority,
+            // if nextCandidate's priority lower than the previous show's priority,
             // could have some other shows that have priority higher than the previous and start before the previous show's finish.
             Show betterCandidate = sortedShows.stream()
                     .filter(s -> s.getPriority() > previousShow.getPriority() && s.getStart().before(previousShow.getFinish()))
@@ -192,6 +192,7 @@ public class ShowScheduler {
         }
         return optimalScheduleShows;
     }
+
     public List<Show> sortedShowsByStartTime(List<Show> unSortedShows) {
         return unSortedShows.stream()
                 .sorted(Comparator.comparing(Show::getStart))
