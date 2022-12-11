@@ -6,6 +6,7 @@ import pct.skedulo.process.DataProcessor;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 public class App
@@ -21,7 +22,7 @@ public class App
         DataProcessor dataProcessor = new DataProcessor();
         List<Show> shows = dataProcessor.loadShowsFromFile(filePath, "application/json");
 
-        List<Show> timeOptimalScheduledShows = new ShowScheduler().optimalShows(shows);
+        LinkedList<Show> timeOptimalScheduledShows = new ShowScheduler().optimalShows(shows);
 
         dataProcessor.writeShowsToFile(timeOptimalScheduledShows, filePath, "application/json");
 

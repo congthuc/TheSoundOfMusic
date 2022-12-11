@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class DataProcessor {
@@ -37,7 +38,7 @@ public class DataProcessor {
         return shows;
     }
 
-    public void writeShowsToFile(List<Show> shows, String filePath, String type) throws IOException {
+    public void writeShowsToFile(LinkedList<Show> shows, String filePath, String type) throws IOException {
 
         if (JSON_MIME_TYPE.equals(type)) {
             try {

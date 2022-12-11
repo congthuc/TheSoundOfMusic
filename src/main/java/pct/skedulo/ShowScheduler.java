@@ -7,13 +7,13 @@ import java.util.stream.Collectors;
 
 public class ShowScheduler {
 
-    public List<Show> optimalShows(List<Show> unSortedShows) {
-        List<Show> optimalOrderShows = optimalOrderShows(unSortedShows);
+    public LinkedList<Show> optimalShows(List<Show> unSortedShows) {
+        LinkedList<Show> optimalOrderShows = optimalOrderShows(unSortedShows);
         return buildTimeOptimalScheduleShows(optimalOrderShows);
     }
 
-    public List<Show> optimalOrderShows(List<Show> unSortedShows) {
-        List<Show> optimalOrderShows = new ArrayList<>();
+    public LinkedList<Show> optimalOrderShows(List<Show> unSortedShows) {
+        LinkedList<Show> optimalOrderShows = new LinkedList<>();
         List<Show> showsSortedByStartTime = sortedShowsByStartTime(unSortedShows);
         Show firstShow = findTheEarliestShow(showsSortedByStartTime);
         optimalOrderShows.add(firstShow);
@@ -25,12 +25,19 @@ public class ShowScheduler {
     }
 
 
-    public void populateTheRestShows(Show previousShow, List<Show> sortedShows, List<Show> result) {
-        if (sortedShows.isEmpty())
-            return;
+    public void populateTheRestShows(Show previousShow, List<Show> sortedShows, LinkedList<Show> result) {
         Show nextShow = findTheNextShow(previousShow, sortedShows);
 
-        if (nextShow != null) {
+        if (nextShow == null) {
+            Show extendedShow = result.stream()
+                    .filter(s -> s.getFinish().after(result.getLast().getFinish()))
+                    .max(Comparator.comparing(Show::getPriority))
+                    .orElse(null);
+            if (extendedShow != null) {
+                result.add(extendedShow);
+                populateTheRestShows(extendedShow, sortedShows, result);
+            }
+        } else {
             result.add(nextShow);
             sortedShows.remove(nextShow);
 
@@ -40,22 +47,16 @@ public class ShowScheduler {
                     .max(Comparator.comparing(Show::getPriority))
                     .orElse(null);
 
-
             if (extendedShow != null) {
                 if (sortedShows.stream().anyMatch(s -> s.getPriority() > extendedShow.getPriority() && s.getStart().before(nextShow.getFinish()))) {
                     populateTheRestShows(nextShow, sortedShows, result);
                 } else {
                     // if there is no higher priority show than the extended show
                     result.add(extendedShow);
-                    populateTheRestShows(nextShow, sortedShows, result);
                 }
-
-            } else {
-                populateTheRestShows(nextShow, sortedShows, result);
             }
-
+            populateTheRestShows(nextShow, sortedShows, result);
         }
-
     }
 
     public Show findTheEarliestShow(List<Show> sortedShows) {
@@ -87,15 +88,18 @@ public class ShowScheduler {
             return findTheNextShow(previousShow, sortedShows);
         }
 
-        int priority = nextCandidate.getPriority();
-        Show betterCandidate = sortedShows.stream()
-                .filter(s -> s.getPriority() > priority && s.getPriority() > previousShow.getPriority() && s.getStart().before(previousShow.getFinish()))
-                .sorted(Comparator.comparing(s -> s.getStart())).findFirst().orElse(null);
-        if (betterCandidate != null) {
-            if (!nextCandidate.getFinish().after(betterCandidate.getFinish())) {
-                sortedShows.remove(nextCandidate);
+        if (nextCandidate.getPriority() < previousShow.getPriority()) {
+            // if nextCandiate's priority lower than the previous show's priority,
+            // could have some other shows that have priority higher than the previous and start before the previous show's finish.
+            Show betterCandidate = sortedShows.stream()
+                    .filter(s -> s.getPriority() > previousShow.getPriority() && s.getStart().before(previousShow.getFinish()))
+                    .sorted(Comparator.comparing(s -> s.getStart())).findFirst().orElse(null);
+            if (betterCandidate != null) {
+                if (!nextCandidate.getFinish().after(betterCandidate.getFinish())) {
+                    sortedShows.remove(nextCandidate);
+                }
+                nextCandidate = betterCandidate;
             }
-            nextCandidate = betterCandidate;
         }
 
         // Handling duplicated time + with or w/o priority
@@ -103,18 +107,9 @@ public class ShowScheduler {
         String band = nextCandidate.getBand();
         int newPriority = nextCandidate.getPriority();
 
-        // same start time, different priority
-        List<Show> dupShows = sortedShows.stream()
-                .filter(s -> !s.getBand().equals(band) && s.getStart().compareTo(startDate) == 0 && s.getPriority() > newPriority)
-                .sorted(Comparator.comparingInt(Show::getPriority))
-                .collect(Collectors.toList());
-        if (!dupShows.isEmpty()) {
-            nextCandidate = dupShows.get(0);
-        }
-
         // same start time and priority
-        dupShows = sortedShows.stream()
-                .filter(s -> s.getPriority() == priority && s.getStart().compareTo(startDate) == 0)
+        List<Show> dupShows = sortedShows.stream()
+                .filter(s -> s.getPriority() == newPriority && s.getStart().compareTo(startDate) == 0)
                 .collect(Collectors.toList());
         if (dupShows.size() > 1) {
             Comparator<Show> comparator = Comparator.comparing(Show::getFinish);
@@ -122,6 +117,17 @@ public class ShowScheduler {
             dupShows.remove(nextCandidate);
             sortedShows.removeAll(dupShows);
         }
+
+        // same start time, different priority
+        dupShows = sortedShows.stream()
+                .filter(s -> !s.getBand().equals(band) && s.getStart().compareTo(startDate) == 0 && s.getPriority() > newPriority)
+                .sorted(Comparator.comparingInt(Show::getPriority))
+                .collect(Collectors.toList());
+        if (!dupShows.isEmpty()) {
+            nextCandidate = dupShows.get(0);
+        }
+
+
 
         if (nextCandidate != null && previousShow.getFinish().before(nextCandidate.getStart())) {
             // there is a gap between 2 shows
@@ -146,7 +152,7 @@ public class ShowScheduler {
         return nextCandidate;
     }
 
-    public List<Show> buildTimeOptimalScheduleShows(List<Show> optimalShows) {
+    public LinkedList<Show> buildTimeOptimalScheduleShows(LinkedList<Show> optimalShows) {
         LinkedList<Show> optimalScheduleShows = new LinkedList<>();
         int listSize = optimalShows.size();
         Show preShow;
