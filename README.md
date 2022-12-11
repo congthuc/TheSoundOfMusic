@@ -42,7 +42,7 @@ For all the details of this assignment, you can find from Skedulo github [here](
 ### Some sides logics
     * Handling time zone on start/finish date during deserializing/serializing.
     * Ingore null property for performance's priority during serializing.
-    * For Unit test: I don't have time to provide it (at the time I wrote this readme), but will provide as much as I can.
+    * For Unit test: I don't have time to provide it (at the time I wrote this readme), but will provide a simple one.
 
 ## Build/Execute Instructions
 * I use Java (version 8) to build this scheduler and Maven to manage dependencies, package the jar.
